@@ -1,4 +1,4 @@
-# MiniProject
+# Campus Navigation System.
 
 The project aims to develop <b>an intelligent campus navigation system<b> leveraging <b>meta-heuristic search algorithms<b>to optimize multi-modal paths on a university campus.  <br>
 
