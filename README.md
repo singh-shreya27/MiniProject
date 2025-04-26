@@ -1,4 +1,8 @@
-# Campus Navigation System.
+ <h1>i-Nav</h1>
+
+<h2>
+    Indoor Campus Navigation System.
+</h2> 
 
 The project aims to develop <b>an intelligent campus navigation system<b> leveraging <b>meta-heuristic search algorithms</b> to optimize multi-modal paths on a university campus.  <br>
 
