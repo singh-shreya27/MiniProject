@@ -1,6 +1,4 @@
-import ezdxf
-import networkx as nx
-import matplotlib.pyplot as plt
-import re
-from collections import defaultdict
-import sys
+ezdxf
+networkx
+matplotlib
+
