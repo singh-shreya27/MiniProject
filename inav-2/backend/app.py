@@ -906,16 +906,17 @@ inter_floor_edges = [
        
     
 ]
+
 G.add_weighted_edges_from(inter_floor_edges)
 
 # Optional: Visualize
-def draw_graph(G):
-    pos = nx.get_node_attributes(G, 'pos')
-    weights = nx.get_edge_attributes(G, 'weight')
-    nx.draw(G, pos, with_labels=True, node_size=500, font_size=8, width=list(weights.values()))
+# def draw_graph(G):
+#     pos = nx.get_node_attributes(G, 'pos')
+#     weights = nx.get_edge_attributes(G, 'weight')
+#     nx.draw(G, pos, with_labels=True, node_size=500, font_size=8, width=list(weights.values()))
   
 
-draw_graph(G)
+# draw_graph(G)
 
 import heapq
 
@@ -966,22 +967,119 @@ def nx_to_adjlist(G):
 # Get adjacency list
 adj_list = nx_to_adjlist(G)
 
-# Choose your start and end nodes here:
-start_node = sys.argv[1]
-end_node = sys.argv[2]
-# start_node = input("Enter start node: ")
-# end_node = input("Enter end node: ")
+# # Choose your start and end nodes here:
+# start_node = sys.argv[1]
+# end_node = sys.argv[2]
+# # start_node = input("Enter start node: ")
+# # end_node = input("Enter end node: ")
 
-if start_node in adj_list and end_node in adj_list:
-    path, total_distance = dijkstra(adj_list, start_node, end_node)
-    if path:
-        result = f"Shortest path: {' -> '.join(path)}\nTotal time taken: {total_distance} seconds"
-        print(result)
-    else:
-        result = f"No path found from {start_node} to {end_node}"
-        print(result)
-else:
-    result = "Start or end node not found in graph."
-    print(result)
+# if start_node in adj_list and end_node in adj_list:
+#     path, total_distance = dijkstra(adj_list, start_node, end_node)
+#     if path:
+#         result = f"Shortest path: {' -> '.join(path)}\nTotal time taken: {total_distance} seconds"
+#         print(result)
+#     else:
+#         result = f"No path found from {start_node} to {end_node}"
+#         print(result)
+# else:
+#     result = "Start or end node not found in graph."
+#     print(result)
+
+
+
+from flask import Flask, request, jsonify, send_from_directory
+import os
+
+from flask_cors import CORS
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(BASE_DIR, "../frontend")
+
+app = Flask(
+    __name__,
+    static_folder=FRONTEND_DIR,
+    static_url_path=""
+)
+
+CORS(app)
+
+@app.route("/")
+def home():
+    return send_from_directory(app.static_folder, "index.html")
+
+
+@app.route("/<path:path>")
+def static_files(path):
+    return send_from_directory(app.static_folder, path)
+
+
+@app.route("/shortest-path")
+def shortest_path():
+    start = request.args.get("start", "").strip().upper()
+    end = request.args.get("end", "").strip().upper()
+
+    if not start or not end:
+        return jsonify({"error": "start and end required"}), 400
+
+    if start not in adj_list or end not in adj_list:
+        return jsonify({"error": "Invalid node"}), 400
+
+    path, dist = dijkstra(adj_list, start, end)
+
+    if not path:
+        return jsonify({"error": "No path found"}), 404
+
+    return jsonify({
+        "path": path,
+        "time": dist
+    })
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+
+# from flask import Flask, request, jsonify, send_from_directory
+# import os
+# from flask_cors import CORS
+
+
+# app = Flask(__name__, static_folder="frontend")
+# CORS(app)
+
+# @app.route("/")
+# def serve_frontend():
+#     return send_from_directory(app.static_folder, "index.html")
+
+# @app.route("/<path:path>")
+# def serve_static_files(path):
+#     return send_from_directory(app.static_folder, path)
+
+
+# # @app.route("/")
+# # def home():
+# #     return "i-Nav backend running 🚀"
+
+# @app.route("/compute", methods=["POST"])
+# def compute():
+#     data = request.get_json()
+#     start_node = data.get("start")
+#     end_node = data.get("end")
+
+#     if not start_node or not end_node:
+#         return jsonify({"error": "start and end required"}), 400
+
+#     if start_node not in adj_list or end_node not in adj_list:
+#         return jsonify({"error": "Invalid node"}), 400
+
+#     path, total_distance = dijkstra(adj_list, start_node, end_node)
+
+#     return jsonify({
+#         "path": path,
+#         "total_time": total_distance
+#     })
+
+# if __name__ == "__main__":
+#     port = int(os.environ.get("PORT", 5000))
+#     app.run(host="0.0.0.0", port=port)
+
 
 
