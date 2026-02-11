@@ -184,7 +184,8 @@
             return;
         }
 
-        fetch(`/shortest-path?start=${source}&end=${destination}`)
+        
+        fetch(`https://miniproject-production-af49.up.railway.app/shortest-path?start=${source}&end=${destination}`)
             .then(res => res.json())
             .then(data => {
                 if (data.error) {
