@@ -43,7 +43,7 @@ def extract_nodes(dxf_file_path):
             if "COURT YARD" in text:
                 continue
 
-            match = re.match(r"ST(\\d+)", text)
+            match = re.match(r"ST(\d+)", text)
             if match:
                 category_count["staircase"] += 1
                 node_name = f"staircase{category_count['staircase']}"
@@ -83,18 +83,24 @@ def add_nodes_edges(G, nodes, edges):
     G.add_nodes_from([(node, {"pos": pos}) for node, pos in nodes.items()])
     G.add_weighted_edges_from(edges)
 
-# Step 3: Rename Nodes After Adding Connections
+# Step 3: Build each floor as its own graph, rename it, then merge it into G.
+# Unmapped nodes (lift_lobby1, toilet2, ...) get an "f<floor>" prefix so the same
+# label on two floors never becomes one shared node; floors only connect through
+# the explicit inter-floor lift/stair edges.
 
-def rename_graph_nodes(G, rename_map):
-    mapping = {node: rename_map.get(node, node) for node in G.nodes()}
-    nx.relabel_nodes(G, mapping, copy=False)
+def add_floor(G, nodes, edges, rename_map, floor):
+    F = nx.Graph()
+    add_nodes_edges(F, nodes, edges)
+    mapping = {node: rename_map.get(node, f"f{floor}{node}") for node in F.nodes()}
+    nx.relabel_nodes(F, mapping, copy=False)
+    G.update(F)
 
 G = nx.Graph()
 
 # Floor 0
 import os
 
-base_path = "floors"
+base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "floors")
 dxf_f0 = os.path.join(base_path, "floor0.dxf")
 dxf_f1 = os.path.join(base_path, "floor1.dxf")
 dxf_f2 = os.path.join(base_path, "floor2.dxf")
@@ -167,8 +173,6 @@ floor0_edges = [
    
    
 ]
-add_nodes_edges(G, floor0_nodes, floor0_edges)
-
 rename_map_floor0 = {
     "ahu1": "11ACG002",
     "lab1": "11ACG004",
@@ -198,10 +202,8 @@ rename_map_floor0 = {
     "stair_up6":"f0stair_up6",
 
 }
-rename_graph_nodes(G, rename_map_floor0)
+add_floor(G, floor0_nodes, floor0_edges, rename_map_floor0, 0)
 
-# Floor 1
-floor1_nodes = extract_nodes(dxf_f1)
 # Floor 1
 floor1_nodes = extract_nodes(dxf_f1)
 floor1_edges = [
@@ -288,8 +290,6 @@ floor1_edges = [
 
         ("stair_up1","stair_up2",1),    
 ]
-add_nodes_edges(G, floor1_nodes, floor1_edges)
-
 rename_map_floor1 = {
       "ahu1": "11AC1002",
         "ahu2": "11AC1015",
@@ -326,7 +326,7 @@ rename_map_floor1 = {
          "stair_up1":"f1stair_up1",
     "stair_up2":"f1stair_up2",
         }
-rename_graph_nodes(G, rename_map_floor1)
+add_floor(G, floor1_nodes, floor1_edges, rename_map_floor1, 1)
 
 # Floor 2
 floor2_nodes = extract_nodes(dxf_f2)
@@ -491,8 +491,6 @@ floor2_edges = [
 
 
 
-add_nodes_edges(G, floor2_nodes, floor2_edges)
-
 rename_map_floor2 = {
      "lab2": "11AC2004", "lab1": "11AC2005", "ahu8": "11AC2003", "ahu7": "11AC2028",
         "ahu9": "11AC2044", "ahu5": "11AC2035", "ahu6": "11AC2038", "ahu4": "11AC2010",
@@ -512,12 +510,9 @@ rename_map_floor2 = {
     "stair_up6":"f2stair_up6",
   
 }
-rename_graph_nodes(G, rename_map_floor2)
+add_floor(G, floor2_nodes, floor2_edges, rename_map_floor2, 2)
 
 # Floor 3
-floor3_nodes = extract_nodes(dxf_f3)
-floor3_edges = []
-    # Floor 3
 floor3_nodes = extract_nodes(dxf_f3)
 floor3_edges = [
       ("class1", "class2", 8.44),
@@ -707,8 +702,6 @@ floor3_edges = [
         
 ]
 
-add_nodes_edges(G, floor3_nodes, floor3_edges)
-
 rename_map_floor3 = {
       "faculty6": "11AC3021",
     "faculty1": "11AC3022",
@@ -768,7 +761,7 @@ rename_map_floor3 = {
     "stair1":"f3stair1","stair2":"f3stair2","stair3":"f3stair3","stair4":"f3stair4",
 
 }
-rename_graph_nodes(G, rename_map_floor3)
+add_floor(G, floor3_nodes, floor3_edges, rename_map_floor3, 3)
 
 # Floor 4
 floor4_nodes = extract_nodes(dxf_f4)
@@ -813,22 +806,20 @@ floor4_edges = [
 
         ("class4", "class1", 3),("scholar1","scholar2",11),("scholar3","scholar4",3.5),("room4","scholar4",11),("room1","scholar1",3),("scholar4","scholar3",11)
 ]
-add_nodes_edges(G, floor4_nodes, floor4_edges)
-
 rename_map_floor4 = {
     "scholar1": "11AC4020", "scholar2": "11AC4021", "scholar3": "11AC4023", "scholar4": "11AC4022",
         "ahu5": "11AC4019", "faculty1": "11AC4015", "ahu8": "11AC4010", "lab2": "11AC4014",
         "lab3": "11AC4013", "lab6": "11AC4009", "lab1": "11AC4011", "ahu7": "11AC4012",
         "room2": "11AC4006", "room10": "11AC4007", "room11": "11AC4008", "ahu1": "11AC4003",
         "ahu2": "11AC4002", "class1": "11AC4001", "class2": "11AC4005", "class3": "11AC4004",
-        "room6": "11AC4016", "cafe": "11AC4028", "room7": "11AC4027", "lab5": "11AC4030",
+        "room6": "11AC4016", "cafe1": "11AC4028", "room7": "11AC4027", "lab5": "11AC4030",
         "lab4": "11AC4029", "ahu10": "11AC4034", "ahu9": "11AC4031", "lab7": "11AC4032",
         "lab8": "11AC4033", "room8": "11AC4036", "room9": "11AC4035", "room3": "11AC4037",
         "class5": "11AC4038", "class6": "11AC4039", "ahu3": "11AC4040", "ahu4": "11AC4042",
         "class4": "11AC4041","room1":"11AC4018","room4":"11AC4025","lift1":"f4lift1","lift2":"f4lift2","lift3":"f4lift3","lift4":"f4lift4","lift5":"f4lift5","lift6":"f4lift6","lift7":"f4lift7","lift8":"f4lift8",
         "stair1":"f4stair1","stair2":"f4stair2","stair3":"f4stair3","stair4":"f4stair4",
 }
-rename_graph_nodes(G, rename_map_floor4)
+add_floor(G, floor4_nodes, floor4_edges, rename_map_floor4, 4)
 
 
 # Inter-floor connections (using renamed names directly)
@@ -954,6 +945,7 @@ def dijkstra(graph, s, d):
         return None, float('inf')
     return path, dist[d]
 
+
 # Convert NetworkX graph to adjacency list
 def nx_to_adjlist(G):
     adj = {}
@@ -964,8 +956,12 @@ def nx_to_adjlist(G):
             adj[u].append((v, weight))
     return adj
 
+
 # Get adjacency list
 adj_list = nx_to_adjlist(G)
+
+# Case-insensitive lookup: room IDs are uppercase (11AC2004), lift/stair IDs lowercase (f2lift3)
+node_lookup = {node.upper(): node for node in adj_list}
 
 # # Choose your start and end nodes here:
 # start_node = sys.argv[1]
@@ -1013,7 +1009,7 @@ def static_files(path):
     return send_from_directory(app.static_folder, path)
 
 
-@app.route("/shortest-path")
+@app.route("/shortest-path")  
 def shortest_path():
     start = request.args.get("start", "").strip().upper()
     end = request.args.get("end", "").strip().upper()
@@ -1021,8 +1017,10 @@ def shortest_path():
     if not start or not end:
         return jsonify({"error": "start and end required"}), 400
 
-    if start not in adj_list or end not in adj_list:
+    if start not in node_lookup or end not in node_lookup:
         return jsonify({"error": "Invalid node"}), 400
+
+    start, end = node_lookup[start], node_lookup[end]
 
     path, dist = dijkstra(adj_list, start, end)
 

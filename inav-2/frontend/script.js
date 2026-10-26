@@ -144,6 +144,11 @@
     const startNavigationBtn = document.getElementById("startNavigationBtn");
     const resultBox = document.getElementById("result");
 
+    // Flask serves this page and the API from the same origin (locally and on Railway),
+    // so use a relative URL; fall back to the Railway backend when opened as a file
+    const RAILWAY_API = "https://miniproject-production-af49.up.railway.app";
+    const API_BASE = window.location.protocol === "file:" ? RAILWAY_API : "";
+
     function setupAutocomplete(inputElement, dropdownElement) {
         inputElement.addEventListener("input", () => {
             const query = inputElement.value.trim().toLowerCase();
@@ -175,17 +180,23 @@
     setupAutocomplete(currentSearch, currentRoom);
     setupAutocomplete(destinationSearch, destinationRoom);
 
+    // Match typed text to the exact ID in roomList (case-insensitive), since
+    // lift/stair IDs are lowercase (f0lift1) and room IDs uppercase (11AC2004)
+    function toRoomId(value) {
+        const query = value.trim().toLowerCase();
+        return roomList.find(r => r.toLowerCase() === query) || value.trim();
+    }
+
     startNavigationBtn.addEventListener("click", () => {
-        const source = currentSearch.value.trim().toUpperCase();
-        const destination = destinationSearch.value.trim().toUpperCase();
+        const source = toRoomId(currentSearch.value);
+        const destination = toRoomId(destinationSearch.value);
 
         if (!source || !destination) {
             alert("Please select both rooms.");
             return;
         }
 
-        
-        fetch(`https://miniproject-production-af49.up.railway.app/shortest-path?start=${source}&end=${destination}`)
+        fetch(`${API_BASE}/shortest-path?start=${encodeURIComponent(source)}&end=${encodeURIComponent(destination)}`)
             .then(res => res.json())
             .then(data => {
                 if (data.error) {
